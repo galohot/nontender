@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Kementerian Luar Negeri Dashboard</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      /* Inline Tailwind config based on your extended setup */
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              kemenlu: {
+                navy: {
+                  50: "#F0F2F7",
+                  100: "#D8DDE9",
+                  200: "#B1BCDA",
+                  300: "#8A9BC9",
+                  400: "#637AB8",
+                  500: "#3C59A7", // Main navy color
+                  600: "#304786",
+                  700: "#243564",
+                  800: "#182343",
+                  900: "#0C1221",
+                },
+                red: {
+                  50: "#FEF2F2",
+                  100: "#FDE3E3",
+                  200: "#FBCACA",
+                  300: "#F8A3A3",
+                  400: "#F47070",
+                  500: "#EF4444", // Main red color
+                  600: "#DC2626",
+                  700: "#B91C1C",
+                  800: "#991B1B",
+                  900: "#7F1D1D",
+                },
+                gold: {
+                  50: "#FFFBEB",
+                  100: "#FEF3C7",
+                  200: "#FDE68A",
+                  300: "#FCD34D",
+                  400: "#FBBF24",
+                  500: "#F59E0B", // Main gold color
+                  600: "#D97706",
+                  700: "#B45309",
+                  800: "#92400E",
+                  900: "#78350F",
+                },
+                green: {
+                  50: "#F0FDF4",
+                  100: "#DCFCE7",
+                  200: "#BBF7D0",
+                  300: "#86EFAC",
+                  400: "#4ADE80",
+                  500: "#22C55E", // Green
+                  600: "#16A34A",
+                  700: "#15803D",
+                  800: "#166534",
+                  900: "#14532D",
+                },
+              },
+            },
+            fontFamily: {
+              sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+              serif: ["Merriweather", "ui-serif", "Georgia", "serif"],
+              display: [
+                "Montserrat",
+                "ui-sans-serif",
+                "system-ui",
+                "sans-serif",
+              ],
+            },
+            fontSize: {
+              xs: ["0.75rem", { lineHeight: "1rem" }],
+              sm: ["0.875rem", { lineHeight: "1.25rem" }],
+              base: ["1rem", { lineHeight: "1.5rem" }],
+              lg: ["1.125rem", { lineHeight: "1.75rem" }],
+              xl: ["1.25rem", { lineHeight: "1.75rem" }],
+              "2xl": ["1.5rem", { lineHeight: "2rem" }],
+              "3xl": ["1.875rem", { lineHeight: "2.25rem" }],
+              "4xl": ["2.25rem", { lineHeight: "2.5rem" }],
+              "5xl": ["3rem", { lineHeight: "1" }],
+              "6xl": ["3.75rem", { lineHeight: "1" }],
+            },
+            spacing: {
+              128: "32rem",
+              144: "36rem",
+            },
+            borderRadius: {
+              "4xl": "2rem",
+            },
+            animation: {
+              "fade-in": "fadeIn 0.5s ease-in",
+              "slide-in": "slideIn 0.5s ease-out",
+            },
+            keyframes: {
+              fadeIn: {
+                "0%": { opacity: "0" },
+                "100%": { opacity: "1" },
+              },
+              slideIn: {
+                "0%": { transform: "translateY(-10px)", opacity: "0" },
+                "100%": { transform: "translateY(0)", opacity: "1" },
+              },
+            },
+            boxShadow: {
+              "inner-lg": "inset 0 2px 4px 0 rgb(0 0 0 / 0.15)",
+              elevated:
+                "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Vue 3 (standalone build) -->
+    <script src="https://unpkg.com/vue@3"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body class="min-h-screen bg-gray-100 font-sans">
+    <!-- Vue App -->
+    <div id="app">
+      <!-- Navbar -->
+      <nav class="bg-kemenlu-navy-500 text-white px-4 py-3 mb-8 shadow">
+        <div class="container mx-auto">
+          <h1 class="text-xl font-bold">Kementerian Luar Negeri Dashboard</h1>
+        </div>
+      </nav>
+
+      <!-- Main Content Container -->
+      <div class="container mx-auto px-4 mb-10">
+        <!-- Filters & Search -->
+        <div class="bg-white rounded-xl shadow-md p-5 mb-8">
+          <div class="flex flex-col lg:flex-row gap-4 lg:items-end">
+            <!-- Search by nama_satker -->
+            <div class="flex-1">
+              <label
+                for="search"
+                class="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Search by Nama Satker
+              </label>
+              <input
+                id="search"
+                type="text"
+                v-model="searchQuery"
+                class="block w-full border-gray-300 rounded-md focus:ring-kemenlu-navy-500 focus:border-kemenlu-navy-500"
+                placeholder="Type here..."
+              />
+            </div>
+
+            <!-- Filter by Pusat/Perwakilan -->
+            <div class="flex-1">
+              <label
+                for="typeFilter"
+                class="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Filter by Pusat/Perwakilan
+              </label>
+              <select
+                id="typeFilter"
+                v-model="selectedType"
+                class="block w-full border-gray-300 rounded-md focus:ring-kemenlu-navy-500 focus:border-kemenlu-navy-500"
+              >
+                <option value="">All</option>
+                <option value="pusat">Pusat</option>
+                <option value="perwakilan">Perwakilan</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <!-- Chart: Top 5 Satker with Highest Realisasi -->
+          <div class="bg-white rounded-xl shadow-md p-5">
+            <h2 class="text-lg font-semibold mb-2 text-kemenlu-navy-600">
+              Top 5 Nama Satker with Highest Realisasi
+            </h2>
+            <p class="text-sm text-gray-500 mb-4">
+              Based on <code>status_realisasi</code> values, descending order
+            </p>
+            <div class="relative h-64">
+              <canvas id="topRealisasiChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart: Region Distribution -->
+          <div class="bg-white rounded-xl shadow-md p-5">
+            <h2 class="text-lg font-semibold mb-2 text-kemenlu-navy-600">
+              Region Distribution
+            </h2>
+            <p class="text-sm text-gray-500 mb-4">Count of Satkers by Region</p>
+            <div class="relative h-64">
+              <canvas id="regionChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="bg-white rounded-xl shadow-md p-5 overflow-x-auto">
+          <h2 class="text-lg font-semibold mb-4 text-kemenlu-navy-600">
+            All Satuan Kerja
+          </h2>
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-200 text-gray-700 text-left">
+              <tr>
+                <th class="px-4 py-2">ID</th>
+                <th class="px-4 py-2">Kode Satker</th>
+                <th class="px-4 py-2">Nama Satker</th>
+                <th class="px-4 py-2">Pusat/Perwakilan</th>
+                <th class="px-4 py-2">City</th>
+                <th class="px-4 py-2">Country</th>
+                <th class="px-4 py-2">Region</th>
+                <th class="px-4 py-2">Status Realisasi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in filteredData"
+                :key="item.id"
+                class="hover:bg-kemenlu-navy-50 odd:bg-white even:bg-gray-50 transition-colors"
+              >
+                <td class="px-4 py-2">{{ item.id }}</td>
+                <td class="px-4 py-2">{{ item.kd_satker_str }}</td>
+                <td class="px-4 py-2">{{ item.nama_satker }}</td>
+                <td class="px-4 py-2 capitalize">
+                  {{ item.pusat_perwakilan }}
+                </td>
+                <td class="px-4 py-2">{{ item.city }}</td>
+                <td class="px-4 py-2">{{ item.country }}</td>
+                <td class="px-4 py-2">{{ item.region }}</td>
+                <td class="px-4 py-2">{{ item.status_realisasi }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- End container -->
+    </div>
+    <!-- End #app -->
+
+    <script>
+      const { createApp, ref, onMounted, computed, watch } = Vue;
+
+      createApp({
+        setup() {
+          const dataItems = ref([]);
+          const searchQuery = ref("");
+          const selectedType = ref("");
+
+          // Chart instances
+          let topRealisasiChart = null;
+          let regionChart = null;
+
+          // Fetch data on mount
+          onMounted(async () => {
+            try {
+              const response = await fetch(
+                "https://script.google.com/macros/s/AKfycbwl9Li7IxTaVNWXLKwydBMOrQHbugJMzR4S6mkosmvF-RePG7LvVvVE2FbEvwROS3BVkw/exec"
+              );
+              const json = await response.json();
+              dataItems.value = json.data || [];
+              createCharts(); // Initialize charts after we have data
+            } catch (error) {
+              console.error("Error fetching data:", error);
+            }
+          });
+
+          // Computed: Filtered Data
+          const filteredData = computed(() => {
+            return dataItems.value.filter((item) => {
+              const matchesSearch = item.nama_satker
+                .toLowerCase()
+                .includes(searchQuery.value.toLowerCase());
+              const matchesType = selectedType.value
+                ? item.pusat_perwakilan === selectedType.value
+                : true;
+              return matchesSearch && matchesType;
+            });
+          });
+
+          // Re-draw charts when filtered data changes
+          watch(filteredData, () => {
+            updateCharts();
+          });
+
+          /* --------------------------------------
+           * Chart Creation and Update
+           * -------------------------------------- */
+          function createCharts() {
+            // Chart: Top 5 Nama Satker with Highest Realisasi
+            const ctxTop = document.getElementById("topRealisasiChart");
+            topRealisasiChart = new Chart(ctxTop, {
+              type: "bar",
+              data: {
+                labels: getTop5RealisasiLabels(),
+                datasets: [
+                  {
+                    label: "Status Realisasi",
+                    data: getTop5RealisasiData(),
+                    backgroundColor: "#3C59A7",
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    title: {
+                      display: true,
+                      text: "Realisasi Value",
+                    },
+                  },
+                  x: {
+                    title: {
+                      display: true,
+                      text: "Nama Satker",
+                    },
+                  },
+                },
+              },
+            });
+
+            // Chart: Region Distribution
+            const ctxRegion = document.getElementById("regionChart");
+            regionChart = new Chart(ctxRegion, {
+              type: "pie",
+              data: {
+                labels: getRegionLabels(),
+                datasets: [
+                  {
+                    label: "Count",
+                    data: getRegionData(),
+                    backgroundColor: [
+                      "#3C59A7",
+                      "#EF4444",
+                      "#F59E0B",
+                      "#22C55E",
+                      "#6366F1",
+                      "#E11D48",
+                      "#14B8A6",
+                      "#9333EA",
+                      "#A16207",
+                    ],
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+              },
+            });
+          }
+
+          // Update chart data on filter changes
+          function updateCharts() {
+            // Update Top 5 Realisasi Chart
+            if (topRealisasiChart) {
+              topRealisasiChart.data.labels = getTop5RealisasiLabels();
+              topRealisasiChart.data.datasets[0].data = getTop5RealisasiData();
+              topRealisasiChart.update();
+            }
+
+            // Update Region Chart
+            if (regionChart) {
+              regionChart.data.labels = getRegionLabels();
+              regionChart.data.datasets[0].data = getRegionData();
+              regionChart.update();
+            }
+          }
+
+          /* --------------------------------------
+           * Helpers to get chart data
+           * -------------------------------------- */
+          // 1) Top 5 Realisasi
+          function getTop5RealisasiLabels() {
+            // Sort by status_realisasi descending, then slice top 5
+            const sorted = [...filteredData.value].sort(
+              (a, b) => b.status_realisasi - a.status_realisasi
+            );
+            const top5 = sorted.slice(0, 5);
+            return top5.map((item) => item.nama_satker);
+          }
+
+          function getTop5RealisasiData() {
+            const sorted = [...filteredData.value].sort(
+              (a, b) => b.status_realisasi - a.status_realisasi
+            );
+            const top5 = sorted.slice(0, 5);
+            return top5.map((item) => item.status_realisasi);
+          }
+
+          // 2) Region Distribution
+          function getRegionLabels() {
+            return [...new Set(filteredData.value.map((item) => item.region))];
+          }
+
+          function getRegionData() {
+            const regions = getRegionLabels();
+            return regions.map(
+              (region) =>
+                filteredData.value.filter((item) => item.region === region)
+                  .length
+            );
+          }
+
+          return {
+            dataItems,
+            searchQuery,
+            selectedType,
+            filteredData,
+          };
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>
