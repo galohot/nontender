@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Kemenlu Data - Full Enhanced</title>
+    <title>Kemenlu Data - Full Enhanced with Export</title>
 
     <!-- Favicon -->
     <link
@@ -300,25 +300,35 @@
           </div>
         </div>
 
-        <!-- Paginated, Sortable Table for NonTender Detail (Second API) -->
+        <!-- Paginated, Sortable Table & Export -->
         <div class="bg-white shadow rounded-lg p-4">
           <div
-            class="flex flex-col space-y-2 mb-4 md:flex-row md:items-center md:justify-between md:space-y-0"
+            class="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0 mb-4"
           >
             <h2 class="text-lg font-semibold">NonTender Detail Table</h2>
 
-            <!-- Page size selection -->
             <div class="flex items-center space-x-2">
-              <label for="pageSize" class="text-sm">Rows per page:</label>
-              <select
-                id="pageSize"
-                v-model.number="pageSize"
-                class="rounded-md border-gray-300 text-sm focus:border-kemenlu-navy-500 focus:ring-kemenlu-navy-500"
+              <!-- Page size selection -->
+              <div class="flex items-center space-x-2">
+                <label for="pageSize" class="text-sm">Rows per page:</label>
+                <select
+                  id="pageSize"
+                  v-model.number="pageSize"
+                  class="rounded-md border-gray-300 text-sm focus:border-kemenlu-navy-500 focus:ring-kemenlu-navy-500"
+                >
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                </select>
+              </div>
+
+              <!-- Export button -->
+              <button
+                @click="exportFilteredTable"
+                class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-100"
               >
-                <option value="5">5</option>
-                <option value="10" selected>10</option>
-                <option value="20">20</option>
-              </select>
+                Export (All Filtered) CSV
+              </button>
             </div>
           </div>
 
@@ -410,7 +420,6 @@
                   <td class="py-2 px-2">{{ item.kd_rup }}</td>
                   <td class="py-2 px-2">{{ item.nama_paket }}</td>
                   <td class="py-2 px-2 text-right">
-                    <!-- Pagu => IDR currency -->
                     {{ formatRupiah(item.pagu) }}
                   </td>
                   <td class="py-2 px-2">{{ item.metode_pengadaan }}</td>
@@ -536,6 +545,7 @@
               }
               // Filter by satker_alias if input is not empty
               if (this.selectedSatkerAlias) {
+                // If user typed or selected an alias from the list
                 if (row.satker_alias !== this.selectedSatkerAlias) {
                   return false;
                 }
@@ -613,7 +623,7 @@
             });
             const arr = Object.keys(map).map((k) => ({
               key: k,
-              avg: map[k].sum / map[k].count || 0,
+              avg: map[k].count ? map[k].sum / map[k].count : 0,
             }));
             arr.sort((a, b) => b.avg - a.avg);
             return arr.slice(0, 5);
@@ -629,7 +639,7 @@
             });
             const arr = Object.keys(map).map((k) => ({
               key: k,
-              avg: map[k].sum / map[k].count || 0,
+              avg: map[k].count ? map[k].sum / map[k].count : 0,
             }));
             arr.sort((a, b) => b.avg - a.avg);
             return arr.slice(0, 5);
@@ -645,7 +655,7 @@
             });
             const arr = Object.keys(map).map((k) => ({
               key: k,
-              avg: map[k].sum / map[k].count || 0,
+              avg: map[k].count ? map[k].sum / map[k].count : 0,
             }));
             arr.sort((a, b) => b.avg - a.avg);
             return arr.slice(0, 5);
@@ -653,6 +663,7 @@
 
           // Sorting and pagination for second API
           sortedNonTenderData() {
+            // We want the entire set (no pagination) for the export
             const arr = [...this.filteredNonTenderData];
             if (this.sortField) {
               arr.sort((a, b) => {
@@ -665,6 +676,7 @@
             }
             return arr;
           },
+          // The data actually displayed on the table (paged subset)
           paginatedSortedNonTenderData() {
             const start = (this.currentPage - 1) * this.pageSize;
             const end = start + this.pageSize;
@@ -696,16 +708,18 @@
             }
           },
 
-          // Format numbers
-          formatNumber(val) {
-            if (!val) val = 0;
-            return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+          // Convert 123456 => "123,456"
+          formatNumber(num) {
+            if (!num) num = 0;
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
           },
-          formatRupiah(val) {
-            if (!val) val = 0;
-            const s = val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+          // Convert 123456 => "Rp. 123,456,-"
+          formatRupiah(num) {
+            if (!num) num = 0;
+            const s = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             return `Rp. ${s},-`;
           },
+          // Format status
           formatStatus(st) {
             if (st === 0) return "Belum";
             if (st === 1) return "Sudah";
@@ -742,6 +756,70 @@
                 status: d.status,
               }));
             }
+          },
+
+          // Export filtered data (ignoring pagination) to CSV
+          exportFilteredTable() {
+            // We'll use sortedNonTenderData so it respects current sorting + filters
+            const dataToExport = this.sortedNonTenderData;
+
+            if (!dataToExport.length) {
+              alert("No data to export!");
+              return;
+            }
+
+            // Build CSV string
+            // Include header row
+            const header = [
+              "tahun_anggaran",
+              "kd_satker_str",
+              "nama_satker",
+              "kd_rup",
+              "nama_paket",
+              "pagu",
+              "metode_pengadaan",
+              "jenis_pengadaan",
+              "nontender_pagu",
+              "nontender_realisasi",
+              "status",
+            ];
+            const csvRows = [];
+            csvRows.push(header.join(",")); // header line
+
+            dataToExport.forEach((item) => {
+              // Convert each item to a row
+              // Format or keep raw? We'll keep raw numeric forms
+              const row = [
+                item.tahun_anggaran,
+                item.kd_satker_str,
+                // For CSV safety, wrap strings with quotes if needed
+                `"${(item.nama_satker || "").replace(/"/g, '""')}"`,
+                item.kd_rup,
+                `"${(item.nama_paket || "").replace(/"/g, '""')}"`,
+                item.pagu,
+                `"${(item.metode_pengadaan || "").replace(/"/g, '""')}"`,
+                `"${(item.jenis_pengadaan || "").replace(/"/g, '""')}"`,
+                item.nontender_pagu,
+                item.nontender_realisasi,
+                item.status,
+              ];
+              csvRows.push(row.join(","));
+            });
+
+            const csvContent = csvRows.join("\n");
+
+            // Create a Blob
+            const blob = new Blob([csvContent], {
+              type: "text/csv;charset=utf-8;",
+            });
+            // Create a temporary link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "export_filtered_nontender.csv";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
           },
 
           // localStorage caching
